@@ -1,0 +1,46 @@
+{
+  "schema": 2,
+  "version": 1,
+  "generated": "2026-11-01T17:55:36Z",
+  "min_app": 1,
+  "files": [
+    {
+      "name": "av-db.json",
+      "sha256": "43bd90716281b34609fba73d60110b96a0df9c044f8482e3145539b1d4c3cd07",
+      "size": 400144
+    }
+  ],
+  "counts": {
+    "hashes": 3228,
+    "packages": 615,
+    "certs": 473,
+    "domains": 841,
+    "entry_names": 7,
+    "patterns": 0,
+    "rules": 9
+  },
+  "sources": [
+    {
+      "name": "MalwareBazaar",
+      "status": "skipped (no key)",
+      "count": 0,
+      "new": 0
+    },
+    {
+      "name": "stalkerware-indicators",
+      "status": "ok",
+      "count": 5245
+    },
+    {
+      "name": "ThreatFox",
+      "status": "skipped (no key)",
+      "count": 0,
+      "history": 0
+    },
+    {
+      "name": "custom.json",
+      "status": "ok",
+      "count": 0
+    }
+  ]
+}
