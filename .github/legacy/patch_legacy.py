@@ -109,7 +109,7 @@ object PCompat {
         return cr.query(uri, cols, sel, args, sort)
     }
 
-    /** Which app (uid) owns this connection. API 29+ asks the system; Android 7-9 reads /proc/net/*. */
+    /** Which app (uid) owns this connection. API 29+ asks the system; Android 7-9 reads the proc net files. */
     fun owner(cm: ConnectivityManager, proto: Int, local: InetAddress, sp: Int, remote: InetAddress, dp: Int): Int {
         if (Build.VERSION.SDK_INT >= 29)
             return cm.getConnectionOwnerUid(proto, InetSocketAddress(local, sp), InetSocketAddress(remote, dp))
