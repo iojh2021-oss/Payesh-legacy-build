@@ -56,11 +56,11 @@ object DashboardLive {
         streaming.value = on
         Plog.w(if (on) "live: dashboard connected, streaming" else "live: stream stopped")
         try {
-            val nm = ctx.getSystemService(NotificationManager::class.java)
+            val nm = PCompat.sys(ctx, NotificationManager::class.java)
             if (on) {
-                nm.createNotificationChannel(NotificationChannel("guard", "محافظ آنتی‌ویروس", NotificationManager.IMPORTANCE_LOW))
+                PCompat.channel(nm, "guard", "محافظ آنتی‌ویروس", NotificationManager.IMPORTANCE_LOW)
                 val pi = PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-                val n = Notification.Builder(ctx, "guard").setSmallIcon(R.drawable.ic_notif)
+                val n = PCompat.nb(ctx, "guard").setSmallIcon(R.drawable.ic_notif)
                     .setContentTitle("اشتراک زنده فعال است")
                     .setContentText("داشبورد در حال مشاهدهٔ وضعیت این گوشی است (فقط مشاهده). برای قطع، از تنظیمات برنامه خاموشش کن.")
                     .setContentIntent(pi).setOngoing(true).build()

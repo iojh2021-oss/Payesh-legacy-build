@@ -772,7 +772,7 @@ fun GuardCard(ctx: Context) {
     LaunchedEffect(Unit) { while (true) { delay(2000); tick++ } }
     val files = remember(tick) { Dedup.hasAccess(ctx) }
     val usage = remember(tick) { Fg.granted(ctx) }
-    val notif = remember(tick) { try { ctx.getSystemService(NotificationManager::class.java).areNotificationsEnabled() } catch (_: Exception) { true } }
+    val notif = remember(tick) { try { PCompat.notificationsEnabled(ctx) } catch (_: Exception) { true } }
 
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(CardBg).padding(16.dp)) {
         Text("محافظت لحظه‌ای: وضعیت و پیش‌نیازها", color = Color.White, fontWeight = FontWeight.Bold)
@@ -786,8 +786,7 @@ fun GuardCard(ctx: Context) {
         }
         CheckRow(notif, if (notif) "اعلان‌ها مجازند" else "اعلان‌ها خاموش‌اند؛ اینجا بزن و روشن کن") {
             ctx.startActivity(
-                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                PCompat.notifSettingsIntent(ctx).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
         CheckRow(files, if (files) "دسترسی همهٔ فایل‌ها: فعال ($watched پوشه تحت نظر)" else "برای شناسایی فوری دانلودها، دسترسی «همهٔ فایل‌ها» لازم است؛ اینجا بزن") {

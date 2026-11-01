@@ -36,12 +36,12 @@ data class Posture(val title: String, val detail: String, val ok: Boolean, val s
 /** Everything the analyzers need to know about the device state (read once per scan). */
 class AvEnv(val ctx: Context) {
     val pm: PackageManager = ctx.packageManager
-    private val ops: AppOpsManager? = ctx.getSystemService(AppOpsManager::class.java)
+    private val ops: AppOpsManager? = PCompat.sys(ctx, AppOpsManager::class.java)
     val self: String = ctx.packageName
     val a11y: Set<String> = enabledPkgs(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
     val notif: Set<String> = enabledPkgs("enabled_notification_listeners")
     val admins: Set<String> = try {
-        (ctx.getSystemService(DevicePolicyManager::class.java).activeAdmins ?: emptyList()).map { it.packageName }.toSet()
+        (PCompat.sys(ctx, DevicePolicyManager::class.java).activeAdmins ?: emptyList()).map { it.packageName }.toSet()
     } catch (_: Exception) { emptySet() }
     val smsDefault: String? = try { Telephony.Sms.getDefaultSmsPackage(ctx) } catch (_: Exception) { null }
     val trusted: Set<String> = AvPrefs.trusted(ctx)
@@ -54,7 +54,7 @@ class AvEnv(val ctx: Context) {
     }
 
     fun op(op: String, uid: Int, pkg: String): Boolean = try {
-        ops?.unsafeCheckOpNoThrow(op, uid, pkg) == AppOpsManager.MODE_ALLOWED
+        PCompat.opCheck(ops, op, uid, pkg) == AppOpsManager.MODE_ALLOWED
     } catch (_: Exception) { false }
 
     fun isSystem(pkg: String): Boolean = try {
@@ -110,7 +110,7 @@ object Vt {
 
 object Av {
     val FLAGS = PackageManager.GET_PERMISSIONS or PackageManager.GET_SERVICES or
-        PackageManager.GET_RECEIVERS or PackageManager.GET_SIGNING_CERTIFICATES
+        PackageManager.GET_RECEIVERS or PCompat.SIGNING_FLAG
 
     val SMART_DIRS = listOf("Download", "Downloads", "Documents", "Telegram", "Bluetooth", "WhatsApp", "Android/media", "Movies", "Pictures")
     val SKIP_DIRS = setOf(".thumbnails", ".cache", ".trash", ".Trash", ".trashed", ".tmp", ".temp", ".face", ".gs_fs0")
@@ -156,8 +156,7 @@ object Av {
     } catch (_: Exception) { null }
 
     private fun debugSigned(pi: PackageInfo): Boolean = try {
-        val si = pi.signingInfo
-        val signers = if (si == null) null else if (si.hasMultipleSigners()) si.apkContentsSigners else si.signingCertificateHistory
+        val signers = PCompat.signers(pi)
         signers?.any { s ->
             val cert = CertificateFactory.getInstance("X.509")
                 .generateCertificate(ByteArrayInputStream(s.toByteArray())) as X509Certificate
@@ -166,8 +165,7 @@ object Av {
     } catch (_: Exception) { false }
 
     private fun certHashes(pi: PackageInfo): List<String> = try {
-        val si = pi.signingInfo
-        val signers = if (si == null) null else if (si.hasMultipleSigners()) si.apkContentsSigners else si.signingCertificateHistory
+        val signers = PCompat.signers(pi)
         val out = ArrayList<String>()
         signers?.forEach { s ->
             val der = s.toByteArray()
@@ -457,10 +455,10 @@ object Av {
     fun posture(ctx: Context, env: AvEnv): List<Posture> {
         val out = ArrayList<Posture>()
         val cr = ctx.contentResolver
-        val secure = try { ctx.getSystemService(KeyguardManager::class.java).isDeviceSecure } catch (_: Exception) { true }
+        val secure = try { PCompat.deviceSecure(PCompat.sys(ctx, KeyguardManager::class.java)) } catch (_: Exception) { true }
         out.add(Posture("قفل صفحه", if (secure) "فعال است" else "رمز / الگو / اثر انگشت تنظیم نشده", secure, 2))
 
-        val patch = Build.VERSION.SECURITY_PATCH
+        val patch = PCompat.securityPatch()
         val age = try {
             (System.currentTimeMillis() - SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(patch)!!.time) / 86_400_000L
         } catch (_: Exception) { -1L }

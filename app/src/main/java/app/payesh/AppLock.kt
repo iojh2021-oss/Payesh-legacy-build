@@ -68,7 +68,7 @@ object AppLock {
 
     private fun derive(pw: String, salt: ByteArray, iter: Int): ByteArray {
         val spec = PBEKeySpec(pw.toCharArray(), salt, iter, 256)
-        return try { SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded } finally { spec.clearPassword() }
+        return try { if (android.os.Build.VERSION.SDK_INT >= 26) SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded else PCompat.pbkdf2Sha256(pw.toCharArray(), salt, iter, 256) } finally { spec.clearPassword() }
     }
 
     fun set(ctx: Context, pw: String) {

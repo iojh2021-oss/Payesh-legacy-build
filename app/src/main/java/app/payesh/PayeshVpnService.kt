@@ -83,7 +83,7 @@ class PayeshVpnService : VpnService() {
     private val handler = Handler(Looper.getMainLooper())
     private val tcpFlows = ConcurrentHashMap<String, TcpFlow>()
     private val udpFlows = ConcurrentHashMap<String, UdpFlow>()
-    private val cm by lazy { getSystemService(ConnectivityManager::class.java) }
+    private val cm by lazy { PCompat.sys(this, ConnectivityManager::class.java) }
     private val clientAddr: InetAddress = InetAddress.getByName(CLIENT_IP)
 
     private fun runAsync(r: Runnable): Boolean = try {
@@ -225,7 +225,7 @@ class PayeshVpnService : VpnService() {
         Plog.w("stopVpn: $reason")
         wantRunning = false
         closeTunnel()
-        try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
+        PCompat.stopFg(this)
         stopSelf()
     }
 
@@ -251,7 +251,7 @@ class PayeshVpnService : VpnService() {
     }
 
     private fun ownerOf(proto: Int, local: InetAddress, sp: Int, remote: InetAddress, dp: Int): Int = try {
-        cm.getConnectionOwnerUid(proto, InetSocketAddress(local, sp), InetSocketAddress(remote, dp))
+        PCompat.owner(cm, proto, local, sp, remote, dp)
     } catch (_: Exception) { -1 }
 
     private fun owner(proto: Int, sp: Int, rem: ByteArray, dp: Int, retry: Boolean = false): Int {
@@ -267,10 +267,10 @@ class PayeshVpnService : VpnService() {
 
     private fun goForeground() {
         try {
-            val nm = getSystemService(NotificationManager::class.java)
-            nm.createNotificationChannel(NotificationChannel("payesh", "Payesh", NotificationManager.IMPORTANCE_LOW))
+            val nm = PCompat.sys(this, NotificationManager::class.java)
+            PCompat.channel(nm, "payesh", "Payesh", NotificationManager.IMPORTANCE_LOW)
             val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-            val n = Notification.Builder(this, "payesh")
+            val n = PCompat.nb(this, "payesh")
                 .setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("پایش")
                 .setContentText("رصد ترافیک برنامه‌ها فعال است")
@@ -323,7 +323,7 @@ class PayeshVpnService : VpnService() {
             val payload = (msg.size - 8).coerceIn(0, 1000)
             val p = ProcessBuilder("ping", "-c", "1", "-W", "2", "-s", payload.toString(), ip)
                 .redirectErrorStream(true).start()
-            if (!p.waitFor(5, TimeUnit.SECONDS)) { p.destroy(); return }
+            if (!PCompat.waitFor(p, 5000L)) { p.destroy(); return }
             if (p.exitValue() == 0) {
                 c.down.addAndGet(msg.size.toLong()); c.touch()
                 writeTun(Pkt.icmpReply(rem, cli, msg, 0, msg.size))

@@ -142,7 +142,7 @@ class DownloadWatcher(private val onFile: (File) -> Unit) {
                 if (NativeEngine.watchAdd(nh, dir.path) < 0) return
                 nativeDirs[dir.path] = depth
             } else {
-                val o = object : FileObserver(dir, mask) {
+                val o = object : FileObserver(dir.path, mask) {
                     override fun onEvent(event: Int, path: String?) {
                         if (path == null) return
                         val f = File(dir, path)
@@ -184,7 +184,7 @@ object AvGuard {
     fun action(ctx: Context, title: String, act: String, path: String, nid: Int): Notification.Action {
         val i = Intent(ctx, GuardActionReceiver::class.java).setAction(act).putExtra("path", path).putExtra("nid", nid)
         val pi = PendingIntent.getBroadcast(ctx, (act + path).hashCode(), i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        return Notification.Action.Builder(Icon.createWithResource(ctx, R.drawable.ic_notif), title, pi).build()
+        return PCompat.action(ctx, title, pi)
     }
 
     /** Ask the user before scanning a freshly downloaded APK (like AVG's download shield). */
@@ -247,7 +247,7 @@ class GuardActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         thread(name = "guard-action") {
             try {
-                val nm = app.getSystemService(NotificationManager::class.java)
+                val nm = PCompat.sys(app, NotificationManager::class.java)
                 val f = File(path)
                 when (act) {
                     AvGuard.ACT_SCAN -> { nm.cancel(nid); AvGuard.scanAndNotify(app, f, null) }

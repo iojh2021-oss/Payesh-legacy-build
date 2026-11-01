@@ -417,7 +417,7 @@ object NetScan {
             val fgSet = fg
             val old = Tracker.sessionStart.let { it > 0 && now - it > 120_000 }
             loadBase(ctx)
-            val today = java.time.LocalDate.now().toString()
+            val today = PCompat.today()
             val selfUid = ctx.applicationInfo.uid
             val bgToday = HashMap<Int, Long>()
             val topConn = HashMap<Int, String>()
@@ -477,7 +477,7 @@ object NetScan {
                             if (now - first < LEARN_MS) learnPk.add(pkg)
                             val known = domCache.getOrPut(pkg) { LinkedHashSet<String>() }
                             if (d !in known) {
-                                if (now - first >= LEARN_MS && bg) newSeen.putIfAbsent("$pkg|$d", now)
+                                if (now - first >= LEARN_MS && bg) if (!newSeen.containsKey("$pkg|$d")) newSeen["$pkg|$d"] = now
                                 known.add(d)
                                 if (known.size > 400) { val itr = known.iterator(); itr.next(); itr.remove() }
                                 dirty = true

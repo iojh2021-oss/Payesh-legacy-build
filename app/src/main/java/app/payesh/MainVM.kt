@@ -36,8 +36,8 @@ private class Meta(val pkgs: List<String>, val label: String, val system: Boolea
 
 object Fg {
     fun granted(c: Context): Boolean {
-        val ao = c.getSystemService(AppOpsManager::class.java)
-        return ao.unsafeCheckOpNoThrow(
+        val ao = PCompat.sys(c, AppOpsManager::class.java)
+        return PCompat.opCheck(ao, 
             AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), c.packageName
         ) == AppOpsManager.MODE_ALLOWED
     }
@@ -45,7 +45,7 @@ object Fg {
     fun foreground(c: Context): Set<String>? {
         if (!granted(c)) return null
         return try {
-            val usm = c.getSystemService(UsageStatsManager::class.java)
+            val usm = PCompat.sys(c, UsageStatsManager::class.java)
             val now = System.currentTimeMillis()
             val ev = usm.queryEvents(now - 3_600_000, now)
             val e = UsageEvents.Event()

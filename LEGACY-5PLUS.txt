@@ -1,0 +1,5 @@
+Payesh for Android 5.0+ (API 21+) -- overlay for iojh2021-oss/Payesh-legacy-build
+
+After unzipping over the repo, remove the old files this overlay replaces:
+  git rm -rf app/src/main/res/mipmap-anydpi
+  git rm -f .github/workflows/build.yml .github/legacy/patch_legacy.py README.txt

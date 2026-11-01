@@ -78,8 +78,8 @@ class MainActivity : ComponentActivity() {
     private fun startVpn() {
         startService(Intent(this, PayeshVpnService::class.java))
         // Ask once to exempt the app from battery optimization so the system never kills the monitor.
-        val pm = getSystemService(PowerManager::class.java)
-        if (!askedBattery && !pm.isIgnoringBatteryOptimizations(packageName)) {
+        val pm = PCompat.sys(this, PowerManager::class.java)
+        if (!askedBattery && !PCompat.ignoringBattery(pm, packageName)) {
             askedBattery = true
             try {
                 startActivity(
@@ -92,5 +92,5 @@ class MainActivity : ComponentActivity() {
 
     private fun openUsage() { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
 
-    private fun openVpnSettings() { startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) }
+    private fun openVpnSettings() { PCompat.openVpnSettings(this) }
 }

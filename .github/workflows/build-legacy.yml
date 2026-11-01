@@ -1,7 +1,12 @@
-name: Build Legacy APK (Android 7+)
-# Manual only (Actions tab -> "Build Legacy APK (Android 7+)" -> Run workflow).
-# Patches a TEMPORARY copy on the runner; the repo files and the normal "Build APK" workflow are untouched.
+name: Build Legacy APK (Android 5+)
+# Runs on every push to main and manually (Actions tab -> Run workflow).
+# The source in this repo is already compatible with Android 5.0 (API 21) and newer:
+# minSdk 21, Rust engine built for API 21, compatibility layer in app/payesh/PCompat.kt.
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "av-db/**"
   workflow_dispatch:
 permissions:
   contents: write
@@ -20,16 +25,39 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src/main/rust
-      - name: Apply Android 7 compatibility patch (runner only)
-        run: python3 .github/legacy/patch_legacy.py
-      - name: Build Rust engine for Android (API 24)
+      - name: Rust unit tests (host)
+        working-directory: app/src/main/rust
+        run: cargo test --release
+      - name: Build Rust engine for Android 5+ (API 21)
         working-directory: app/src/main/rust
         run: |
           cargo install cargo-ndk --locked
-          cargo ndk -t arm64-v8a -t armeabi-v7a --platform 24 -o ../jniLibs build --release
+          cargo ndk -t arm64-v8a -t armeabi-v7a --platform 21 -o ../jniLibs build --release
+      - name: Bundle latest published AV database into the APK (best effort)
+        continue-on-error: true
+        run: |
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/${{ github.repository }}/av-db/av-db.json" -o /tmp/av-db.json
+          python3 - <<'PY'
+          import json, shutil
+          d = json.load(open('/tmp/av-db.json'))
+          assert d.get('schema') in (1, 2)
+          assert len(d.get('hashes', {})) > 100 and len(d.get('domains', {})) > 10
+          shutil.copy('/tmp/av-db.json', 'app/src/main/assets/av-db.json')
+          print('bundled AV database version', d.get('version'))
+          PY
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
+      - name: Lint - APIs missing on Android 5 (report only)
+        continue-on-error: true
+        run: |
+          gradle lintDebug --no-daemon || true
+          {
+            echo '### Android 5 compatibility lint (NewApi)'
+            echo '```'
+            if [ -f app/build/reports/lint-newapi.txt ]; then grep -E "NewApi|Error:|Call requires|Field requires|Class requires" app/build/reports/lint-newapi.txt | head -60 || true; else echo "no report"; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Build APK
         run: |
           set -o pipefail
@@ -40,8 +68,11 @@ jobs:
           { grep -E "^e: " build.log | head -30; grep -A5 "What went wrong" build.log | head -14; } > errors.txt || true
           { echo '### Build errors'; echo '```'; cat errors.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           head -10 errors.txt | while IFS= read -r line; do echo "::error::${line}"; done
-      - name: Rename APK
-        run: cp app/build/outputs/apk/debug/*.apk payesh-legacy.apk
+      - name: Rename APK and check minSdk
+        run: |
+          cp app/build/outputs/apk/debug/*.apk payesh-legacy.apk
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)
+          { echo '### APK'; echo '```'; "$AAPT" dump badging payesh-legacy.apk | grep -E "^package:|sdkVersion|native-code" ; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: payesh-legacy-apk
@@ -50,6 +81,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: payesh-legacy
-          name: Payesh legacy (Android 7+)
+          name: Payesh legacy (Android 5+)
           prerelease: true
           files: payesh-legacy.apk

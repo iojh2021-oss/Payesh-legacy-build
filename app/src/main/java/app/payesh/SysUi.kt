@@ -280,7 +280,7 @@ private fun reportText(ctx: Context): String {
 
 private fun copyReport(ctx: Context) {
     try {
-        ctx.getSystemService(ClipboardManager::class.java)
+        PCompat.sys(ctx, ClipboardManager::class.java)
             .setPrimaryClip(ClipData.newPlainText("payesh-log", reportText(ctx)))
         Toast.makeText(ctx, "گزارش کپی شد", Toast.LENGTH_SHORT).show()
     } catch (_: Exception) {

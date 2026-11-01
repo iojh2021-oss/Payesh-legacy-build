@@ -124,16 +124,16 @@ object AvNotify {
     /** high = heads-up alert channel, otherwise the quiet info channel. Actions are the buttons under the text. */
     fun post(ctx: Context, id: Int, title: String, text: String, high: Boolean, actions: List<Notification.Action> = emptyList()) {
         try {
-            val nm = ctx.getSystemService(NotificationManager::class.java)
-            if (!nm.areNotificationsEnabled()) {
+            val nm = PCompat.sys(ctx, NotificationManager::class.java)
+            if (!PCompat.notificationsEnabled(ctx)) {
                 Plog.w("notification blocked (notifications disabled): $title")
                 AvGuardState.note.value = "اعلان‌ها خاموش‌اند؛ پیام نمایش داده نشد"
                 return
             }
-            nm.createNotificationChannel(NotificationChannel("av_alerts", "هشدار آنتی‌ویروس", NotificationManager.IMPORTANCE_HIGH))
-            nm.createNotificationChannel(NotificationChannel("av_info", "اطلاعیه‌های آنتی‌ویروس", NotificationManager.IMPORTANCE_DEFAULT))
+            PCompat.channel(nm, "av_alerts", "هشدار آنتی‌ویروس", NotificationManager.IMPORTANCE_HIGH)
+            PCompat.channel(nm, "av_info", "اطلاعیه‌های آنتی‌ویروس", NotificationManager.IMPORTANCE_DEFAULT)
             val pi = PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-            val b = Notification.Builder(ctx, if (high) "av_alerts" else "av_info")
+            val b = PCompat.nb(ctx, if (high) "av_alerts" else "av_info")
                 .setSmallIcon(R.drawable.ic_notif).setContentTitle(title).setContentText(text.lines().first())
                 .setStyle(Notification.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true)
             actions.forEach { b.addAction(it) }
@@ -180,7 +180,7 @@ object AvState {
     }
 
     fun startGuard(ctx: Context) {
-        try { ctx.startForegroundService(Intent(ctx, GuardService::class.java)) } catch (e: Exception) { Plog.w("guard start failed: $e") }
+        try { androidx.core.content.ContextCompat.startForegroundService(ctx, Intent(ctx, GuardService::class.java)) } catch (e: Exception) { Plog.w("guard start failed: $e") }
     }
 
     fun setEnabled(ctx: Context, on: Boolean) {
@@ -259,7 +259,7 @@ object AvState {
                             val list = (try { dir.listFiles() } catch (_: Exception) { null }) ?: continue
                             for (f in list) {
                                 try {
-                                    if (Files.isSymbolicLink(f.toPath())) continue
+                                    if (PCompat.isLink(f)) continue
                                     if (f.isDirectory) {
                                         if (f.path !in skip && f.name !in Av.SKIP_DIRS) stack.push(f)
                                     } else if (f.isFile) {

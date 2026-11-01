@@ -53,7 +53,7 @@ object Dedup {
 
     fun hasAccess(ctx: Context): Boolean =
         if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
-        else ctx.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        else androidx.core.content.ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
     /** Internal shared storage plus any SD card / USB volume. */
     fun roots(ctx: Context): List<File> {
@@ -109,7 +109,7 @@ object Dedup {
             val list = (try { dir.listFiles() } catch (_: Exception) { null }) ?: continue
             for (f in list) {
                 try {
-                    if (Files.isSymbolicLink(f.toPath())) continue // never follow links: could point at the "original"
+                    if (PCompat.isLink(f)) continue // never follow links: could point at the "original"
                     if (f.isDirectory) {
                         if (f.name.startsWith(".")) continue
                         if (f.path in skipDirs) continue

@@ -212,7 +212,8 @@ object History {
     /** Persian (Jalali) date for a yyyy-MM-dd day. */
     fun jalali(day: String): String = try {
         val d = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(day)!!
-        android.icu.text.SimpleDateFormat("EEEE d MMMM yyyy", android.icu.util.ULocale("fa_IR@calendar=persian")).format(d)
+        if (android.os.Build.VERSION.SDK_INT >= 24) android.icu.text.SimpleDateFormat("EEEE d MMMM yyyy", android.icu.util.ULocale("fa_IR@calendar=persian")).format(d)
+        else PCompat.jalali(d)
     } catch (_: Exception) {
         day
     }

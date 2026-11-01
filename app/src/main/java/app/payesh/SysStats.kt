@@ -64,7 +64,8 @@ object SysStats {
 
     @Suppress("DEPRECATION")
     fun loadRange(ctx: Context, start: Long, end: Long): List<SApp> {
-        val nsm = ctx.getSystemService(NetworkStatsManager::class.java) ?: return emptyList()
+        if (android.os.Build.VERSION.SDK_INT < 23) return emptyList()
+        val nsm = PCompat.sys(ctx, NetworkStatsManager::class.java)
         val map = HashMap<Int, SApp>()
         val types = listOf(ConnectivityManager.TYPE_WIFI, ConnectivityManager.TYPE_MOBILE)
         for ((ti, type) in types.withIndex()) {

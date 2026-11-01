@@ -83,14 +83,14 @@ class GuardService : Service() {
         super.onDestroy()
     }
 
-    private fun stopForegroundCompat() { try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {} }
+    private fun stopForegroundCompat() { PCompat.stopFg(this) }
 
     private fun goForeground() {
         try {
-            val nm = getSystemService(NotificationManager::class.java)
-            nm.createNotificationChannel(NotificationChannel("guard", "محافظ آنتی‌ویروس", NotificationManager.IMPORTANCE_LOW))
+            val nm = PCompat.sys(this, NotificationManager::class.java)
+            PCompat.channel(nm, "guard", "محافظ آنتی‌ویروس", NotificationManager.IMPORTANCE_LOW)
             val pi = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-            val n = Notification.Builder(this, "guard").setSmallIcon(R.drawable.ic_notif)
+            val n = PCompat.nb(this, "guard").setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle("آنتی‌ویروس پایش").setContentText("محافظت لحظه‌ای فعال است: نصب‌ها و دانلودها زیر نظر است")
                 .setContentIntent(pi).setOngoing(true).build()
             if (Build.VERSION.SDK_INT >= 34) startForeground(2, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -361,7 +361,7 @@ class GuardService : Service() {
                 putString(android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER, MediaStore.Files.FileColumns.DATE_ADDED + " DESC")
                 putInt(android.content.ContentResolver.QUERY_ARG_LIMIT, 100)
             }
-            contentResolver.query(MediaStore.Files.getContentUri("external"), cols, q, null)?.use { c ->
+            PCompat.query(contentResolver, MediaStore.Files.getContentUri("external"), cols, q)?.use { c ->
                 while (c.moveToNext()) {
                     val path = c.getString(0) ?: continue
                     val added = c.getLong(1)
@@ -386,7 +386,7 @@ class GuardService : Service() {
     /** Detects the system package-installer screen coming to the front (needs Usage access). */
     private fun checkInstaller() {
         if (!Fg.granted(this)) return
-        val usm = getSystemService(UsageStatsManager::class.java) ?: return
+        val usm = PCompat.sys(this, UsageStatsManager::class.java) ?: return
         val now = System.currentTimeMillis()
         val ev = usm.queryEvents(now - 4_000, now)
         val e = UsageEvents.Event()
@@ -569,7 +569,7 @@ class GuardService : Service() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED && AvPrefs.enabled(ctx)) {
-            try { ctx.startForegroundService(Intent(ctx, GuardService::class.java)) } catch (_: Exception) {}
+            try { androidx.core.content.ContextCompat.startForegroundService(ctx, Intent(ctx, GuardService::class.java)) } catch (_: Exception) {}
         }
     }
 }
