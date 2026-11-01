@@ -162,7 +162,7 @@ object PCompat {
     }
 
     // ------------------------------------------------------------ who owns a connection
-    /** API 29+ asks the system; Android 5-9 reads /proc/net/* (readable by apps before Android 10). */
+    /** API 29+ asks the system; Android 5-9 reads the proc net files (readable by apps before Android 10). */
     fun owner(cm: ConnectivityManager, proto: Int, local: InetAddress, sp: Int, remote: InetAddress, dp: Int): Int {
         if (Build.VERSION.SDK_INT >= 29)
             return cm.getConnectionOwnerUid(proto, InetSocketAddress(local, sp), InetSocketAddress(remote, dp))
